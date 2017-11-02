@@ -39,7 +39,7 @@ func (ec *NotifyCommand) Handle(command interface{}) []byte {
 
 	dbusConnection, err := dbus.SessionBus()
 	if err != nil {
-		return []byte("{ \"success\" : false }")
+		return hasError("Unable to configure dbus connection.")
 	}
 
 	notifier := dbusConnection.Object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
@@ -66,10 +66,14 @@ func (ec *NotifyCommand) Handle(command interface{}) []byte {
 		int32(5000))
 
 	if status.Err != nil {
-		return []byte("{ \"success\" : false }")
+		return hasError("Unable to create notification")
 	}
 
-	return []byte("{ \"success\" : true }")
+	returnData := make(map[string]interface{})
+	returnData["title"] = req.Title
+	returnData["message"] = req.Message
+	returnData["notified_via"] = "dbus"
+	return ranSuccessfully(returnData)
 }
 
 //

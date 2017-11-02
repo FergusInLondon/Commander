@@ -24,13 +24,13 @@ func (ec *EchoCommand) Object() interface{} {
 	return &EchoResponse{}
 }
 
-func (ec *EchoCommand) Handle(command interface{}) []byte {
+func (ec *EchoCommand) Handle(command interface{}) (jsonObject []byte) {
 	jsonObject, err := json.Marshal(command)
 	if err != nil {
-		jsonObject = []byte("{ \"success\" : false ")
+		jsonObject = hasError("Unable to parse request.")
 	}
 
-	return jsonObject
+	return
 }
 
 func (ec *EchoCommand) Description() CommandDescription {

@@ -41,22 +41,24 @@ func (tc *TemplateCommand) Handle(command interface{}) []byte {
 
 	tmpl, err := template.New("example").Parse(tc.template)
 	if err != nil {
-		return []byte("{ \"success\" : false }")
+		return hasError("Unable to parse template file.")
 	}
 
 	file, err := os.Create(tc.filename)
 	if err != nil {
-		return []byte("{ \"success\" : false }")
+		return hasError("Unable to open target file.")
 	}
+
 	defer file.Close()
-
-	err = tmpl.Execute(file, req)
-
-	if err != nil {
-		return []byte("{ \"success\" : false }")
+	if err = tmpl.Execute(file, req); err != nil {
+		return hasError("Unable to populate and save terget file.")
 	}
 
-	return []byte("{ \"success\" : true }")
+	returnData := make(map[string]interface{})
+	returnData["file_updated"] = tc.filename
+	returnData["new_values"] = req
+
+	return ranSuccessfully(returnData)
 }
 
 //

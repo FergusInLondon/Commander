@@ -36,7 +36,7 @@ func (comm *Commander) Init() (int, error) {
 	comm.registry = make(map[string]commands.Command)
 
 	// @todo - find a nicer way.
-	commObjects := make([]commands.Command, 0, 3)
+	commObjects := make([]commands.Command, 3)
 	commObjects[0] = new(commands.EchoCommand)
 	commObjects[1] = new(commands.NotifyCommand)
 	commObjects[2] = new(commands.TemplateCommand)

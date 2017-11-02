@@ -90,7 +90,7 @@ func main() {
 	if isWatchDogEnabled {
 		go func() {
 			for {
-				/* Make request to listeners[0] '/watchdog' */
+				/* @todo: Make request to listeners[0] '/watchdog' */
 				time.Sleep(interval / 3)
 			}
 		}()
