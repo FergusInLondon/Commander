@@ -24,17 +24,17 @@ func (nc *NotifyCommand) Init() {
 }
 
 //
-func (ec *NotifyCommand) Identifier() string {
+func (nc *NotifyCommand) Identifier() string {
 	return "notify"
 }
 
 //
-func (ec *NotifyCommand) Object() interface{} {
+func (nc *NotifyCommand) Object() interface{} {
 	return &NotifyRequest{}
 }
 
 //
-func (ec *NotifyCommand) Handle(command interface{}) []byte {
+func (nc *NotifyCommand) Handle(command interface{}) []byte {
 	req := command.(*NotifyRequest)
 
 	dbusConnection, err := dbus.SessionBus()
@@ -77,7 +77,7 @@ func (ec *NotifyCommand) Handle(command interface{}) []byte {
 }
 
 //
-func (ec *NotifyCommand) Description() CommandDescription {
+func (nc *NotifyCommand) Description() CommandDescription {
 	desc := new(CommandDescription)
 	desc.Name = "Notify"
 	desc.Description = "Displays a system notification via the Desktop Environment."

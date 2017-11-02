@@ -60,8 +60,7 @@ func main() {
 
 	// Create our Commander object; this will handle all HTTP interactions.
 	commander := new(Commander)
-	_, err := commander.Init()
-	if err != nil {
+	if err := commander.Init(); err != nil {
 		journal.Print(journal.PriErr, "Unable to initialise Commander!")
 		panic(err)
 	}

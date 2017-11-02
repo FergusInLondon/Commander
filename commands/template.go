@@ -65,7 +65,7 @@ func (tc *TemplateCommand) Handle(command interface{}) []byte {
 func (tc *TemplateCommand) Description() CommandDescription {
 	desc := new(CommandDescription)
 	desc.Name = "Template"
-	desc.Description = "Displays a system notification via the Desktop Environment."
+	desc.Description = "Updates a template (i.e a configuration file)."
 	desc.Command = "template"
 
 	return *desc

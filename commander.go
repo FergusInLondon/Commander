@@ -32,7 +32,7 @@ func (comm *Commander) Register(c commands.Command) {
 }
 
 // Init configures the command registry, and begins the uptime counter.
-func (comm *Commander) Init() (int, error) {
+func (comm *Commander) Init() (err error) {
 	comm.registry = make(map[string]commands.Command)
 
 	// @todo - find a nicer way.
@@ -48,7 +48,7 @@ func (comm *Commander) Init() (int, error) {
 
 	comm.status.Uptime = time.Now()
 	comm.initialised = true
-	return 1, nil
+	return
 }
 
 // HandleCommand recieves a HTTP Request containing a JSON object with a "command"
