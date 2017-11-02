@@ -2,10 +2,21 @@
 
 class CommanderClient {
 
+    /** @param resource */
     private $curlClient;
 
+    /** @param string */
     private $socketPath;
 
+    /** @param string|null */
+    private $curlError = null;
+
+    /**
+     * Constructor: Initialises the Curl Resource, making it usable for subsequent
+     *  API requests.
+     *
+     * @param string
+     */
     public function __construct(string $socketPath)
     {
         $this->curlClient = curl_init();
@@ -15,6 +26,9 @@ class CommanderClient {
         curl_setopt($this->curlClient, CURLOPT_RETURNTRANSFER, true);
     }
 
+    /**
+     * Deconstructor: Ensure the Curl Resource is correctly closed.
+     */
     public function __destruct()
     {
         curl_close($this->curlClient);
@@ -35,6 +49,13 @@ class CommanderClient {
     }
 
 
+    /**
+     * Dispatches a command - via Curl - to Commander's Unix Socket.
+     *
+     * @param  string Command identifier to invoke on the Commander daemon.
+     * @param  array  Parameters to dispatch to the Commander daemon.
+     * @return array  JSON decoded response from Commander.
+     */
     public function dispatchCommand(string $command, array $parameters): array 
     {
         $payload = [
@@ -46,21 +67,51 @@ class CommanderClient {
         curl_setopt($this->curlClient, CURLOPT_POSTFIELDS, json_encode($payload));
 
         $result = curl_exec($this->curlClient);
+        if ($result === FALSE) {
+            $this->curlError = curl_error($this->curlClient);
+            return [ 'success' => false ];
+        }
+
         return json_decode($result, true);
     }
 
 
+    /**
+     * Retrieves a list of all available commands from Commander's API.
+     *
+     * @return array  List of available commands.
+     */
     public function listAvailableCommands(): array
     {
         curl_setopt($this->curlClient, CURLOPT_URL, $this->generateRequestUri("/listing"));
 
         $result = curl_exec($this->curlClient);
+        if ($result === FALSE) {
+            $this->curlError = curl_error($this->curlClient);
+            return [ 'success' => false ];
+        }
+        
         return json_decode($result, true);
+    }
+
+
+    /**
+     * Returns a human readable string from Curl in the event of an error.
+     *
+     * @return bool|string 
+     */
+    public function getCurlError()
+    {
+        return is_null($this->curlError) ? false : $this->curlError;
     }
 }
 
 $client = new CommanderClient('/tmp/commander.sock');
 $availableCommands = $client->listAvailableCommands();
+
+if (isset($availableCommands['status']) && $availableCommands['status'] === FALSE) {
+    return printf("Error! (%s)\n", $client->getCurlError());
+}
 
 printf("Available Commander Commands (%s):\nName\t - Command\t - Description\n", $availableCommands['count']);
 foreach ($availableCommands['commands'] as $command) {
