@@ -12,6 +12,8 @@ package commands
 import "github.com/godbus/dbus"
 
 type NotifyCommand struct {
+	dbusConnection *dbus.Conn
+	dbusNotifier   dbus.BusObject
 }
 
 type NotifyRequest struct {
@@ -20,7 +22,14 @@ type NotifyRequest struct {
 }
 
 func (nc *NotifyCommand) Init() {
+	var err error
 
+	nc.dbusConnection, err = dbus.SessionBus()
+	if err != nil {
+		panic(err)
+	}
+
+	nc.dbusNotifier = nc.dbusConnection.Object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
 }
 
 //
@@ -37,13 +46,7 @@ func (nc *NotifyCommand) Object() interface{} {
 func (nc *NotifyCommand) Handle(command interface{}) []byte {
 	req := command.(*NotifyRequest)
 
-	dbusConnection, err := dbus.SessionBus()
-	if err != nil {
-		return hasError("Unable to configure dbus connection.")
-	}
-
-	notifier := dbusConnection.Object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
-	status := notifier.Call(
+	if status := nc.dbusNotifier.Call(
 		// Object Method
 		"org.freedesktop.Notifications.Notify",
 		// Flags
@@ -63,9 +66,7 @@ func (nc *NotifyCommand) Handle(command interface{}) []byte {
 		// DBus Method Params - 7: Hints
 		map[string]dbus.Variant{},
 		// DBus Method Params - 8: Expiry/Timeout
-		int32(5000))
-
-	if status.Err != nil {
+		int32(5000)); status.Err != nil {
 		return hasError("Unable to create notification")
 	}
 
