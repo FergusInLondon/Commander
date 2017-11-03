@@ -3,6 +3,8 @@ package commands
 
 import (
 	"encoding/json"
+	"os"
+	"text/template"
 )
 
 // A Command is an object that is capable of handling an instruction from the
@@ -47,4 +49,19 @@ func ranSuccessfully(result map[string]interface{}) (jsonObject []byte) {
 	}
 
 	return
+}
+
+func handleTemplate(data interface{}, tplFile, destination string) (err error) {
+	tmpl, err := template.ParseFiles(tplFile)
+	if err != nil {
+		return
+	}
+
+	file, err := os.Create(destination)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	return tmpl.Execute(file, data)
 }

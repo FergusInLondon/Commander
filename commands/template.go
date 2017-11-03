@@ -7,7 +7,7 @@ package commands
 
 import (
 	"os"
-	"text/template"
+	"path/filepath"
 )
 
 type TemplateCommand struct {
@@ -21,7 +21,12 @@ type TemplateRequest struct {
 }
 
 func (tc *TemplateCommand) Init() {
-	tc.template = "The directory is {{.Directory}} and it's configured for {{.Connections}} connections."
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+
+	tc.template = filepath.Dir(ex) + "/example/commander_templating.tmpl"
 	tc.filename = "/tmp/commander_example.conf"
 }
 
@@ -39,19 +44,8 @@ func (tc *TemplateCommand) Object() interface{} {
 func (tc *TemplateCommand) Handle(command interface{}) []byte {
 	req := command.(*TemplateRequest)
 
-	tmpl, err := template.New("example").Parse(tc.template)
-	if err != nil {
-		return hasError("Unable to parse template file.")
-	}
-
-	file, err := os.Create(tc.filename)
-	if err != nil {
-		return hasError("Unable to open target file.")
-	}
-
-	defer file.Close()
-	if err = tmpl.Execute(file, req); err != nil {
-		return hasError("Unable to populate and save terget file.")
+	if err := handleTemplate(req, tc.template, tc.filename); err != nil {
+		return hasError("Unable to update configuration file")
 	}
 
 	returnData := make(map[string]interface{})
