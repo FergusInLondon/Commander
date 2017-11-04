@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"text/template"
+
+	"github.com/godbus/dbus"
 )
 
 // A Command is an object that is capable of handling an instruction from the
@@ -64,4 +66,25 @@ func handleTemplate(data interface{}, tplFile, destination string) (err error) {
 	defer file.Close()
 
 	return tmpl.Execute(file, data)
+}
+
+var dbusConnections struct {
+	System  *dbus.Conn
+	Session *dbus.Conn
+}
+
+func getDbusSystemConnection() (conn *dbus.Conn, err error) {
+	if dbusConnections.System == nil {
+		dbusConnections.System, err = dbus.SystemBus()
+	}
+
+	return dbusConnections.System, err
+}
+
+func getDbusSessionConnection() (conn *dbus.Conn, err error) {
+	if dbusConnections.Session == nil {
+		dbusConnections.Session, err = dbus.SessionBus()
+	}
+
+	return dbusConnections.Session, err
 }

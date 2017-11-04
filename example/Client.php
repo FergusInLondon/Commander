@@ -106,6 +106,10 @@ class CommanderClient {
     }
 }
 
+/*
+ * Example Usage:
+ */
+
 $client = new CommanderClient('/tmp/commander.sock');
 $availableCommands = $client->listAvailableCommands();
 
@@ -117,4 +121,3 @@ printf("Available Commander Commands (%s):\nName\t - Command\t - Description\n",
 foreach ($availableCommands['commands'] as $command) {
     printf("%s\t - %s\t - %s\n", $command['name'], $command['command'], $command['description']);
 }
-

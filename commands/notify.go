@@ -12,8 +12,7 @@ package commands
 import "github.com/godbus/dbus"
 
 type NotifyCommand struct {
-	dbusConnection *dbus.Conn
-	dbusNotifier   dbus.BusObject
+	dbusNotifier dbus.BusObject
 }
 
 type NotifyRequest struct {
@@ -22,14 +21,12 @@ type NotifyRequest struct {
 }
 
 func (nc *NotifyCommand) Init() {
-	var err error
-
-	nc.dbusConnection, err = dbus.SessionBus()
+	dbusConnection, err := getDbusSessionConnection()
 	if err != nil {
 		panic(err)
 	}
 
-	nc.dbusNotifier = nc.dbusConnection.Object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
+	nc.dbusNotifier = dbusConnection.Object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
 }
 
 //
