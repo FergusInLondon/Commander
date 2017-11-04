@@ -41,11 +41,7 @@ func (sc *ServicesCommand) Object() interface{} {
 func (sc *ServicesCommand) Handle(command interface{}) []byte {
 	//req := command.(map)
 
-	call := sc.systemdManager.Call(
-		// Object Method
-		"org.freedesktop.systemd1.Manager.ListUnits",
-		// Flags
-		0)
+	call := sc.systemdManager.Call("org.freedesktop.systemd1.Manager.ListUnits", 0)
 
 	if call.Err != nil {
 		panic(call.Err)

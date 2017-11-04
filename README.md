@@ -26,6 +26,12 @@ Currently implemented commands include: (a) a demonstration echo command, (b) a 
 
 I aim to write two more demonstration commands: (1) an iptables interface, and (2) a `systemd` unit manager. After that I'll do some refactoring and clean up.
 
+## System Configuration & User Privileges
+
+This interacts with `systemd` to restart specific units, therefore beware that - depending upon your system - this may well need to be ran as root. Not cool, but not a priority to fix at the moment either.
+
+Similarly, assumptions are made about systemd unit names - i.e `hostapd.service`. I'll try and document these, and throw in some accompanying provisioning scripts (i.e via *Ansible*) when this is done.
+
 ## Testing
 
 There are no tests. :( I will aim to write some tests once I decide exactly how to structure them (there's a lot of moving parts.) and I'm happy with the overall design. It would be jumping the gun to have gone full TDD on a simple proof of concept!
