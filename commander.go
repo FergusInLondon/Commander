@@ -36,11 +36,9 @@ func (comm *Commander) Init() (err error) {
 	comm.registry = make(map[string]commands.Command)
 
 	// @todo - find a nicer way.
-	commObjects := make([]commands.Command, 4)
-	commObjects[0] = new(commands.EchoCommand)
-	commObjects[1] = new(commands.NotifyCommand)
-	commObjects[2] = new(commands.ServicesCommand)
-	commObjects[3] = new(commands.UpdateHostAPDCommand)
+	commObjects := make([]commands.Command, 2)
+	commObjects[0] = new(commands.UpdateDNSMasqCommand)
+	commObjects[1] = new(commands.UpdateHostAPDCommand)
 
 	for i := 0; i < len(commObjects); i++ {
 		commObjects[i].Init()
