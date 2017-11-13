@@ -12,6 +12,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/gorilla/mux"
 	"net"
 	"net/http"
 	"os"
@@ -65,22 +66,25 @@ func main() {
 		panic(err)
 	}
 
+	router := mux.NewRouter()
+	router.Headers("X-Requested-With", "PiRouterBackend")
+	commander.ConfigureListeners(router)
+
 	// Is systemd watchdog enabled? If so, register a HTTP endpoint which can
 	//  handle watchdog functionality.
 	isWatchDogEnabled := false
 	interval, err := daemon.SdWatchdogEnabled(false)
 	if err != nil && interval == 0 { // erhh... if err is NOT nil, then set watchdog to true...?!?!
 		isWatchDogEnabled = true
-		http.HandleFunc("/watchdog", func(w http.ResponseWriter, req *http.Request) {
+		router.HandleFunc("/watchdog", func(w http.ResponseWriter, req *http.Request) {
 			daemon.SdNotify(false, "WATCHDOG=1")
 		})
 	}
 
+
 	// Configure Commander HTTP Handlers
-	http.HandleFunc("/listing", commander.Listing)
-	http.HandleFunc("/status", commander.ProvideStatus)
-	http.HandleFunc("/dispatch", commander.HandleCommand)
-	http.Serve(listener, nil)
+	router.HandleFunc("/dispatch", commander.HandleCommand)
+	http.Serve(listener, router)
 
 	journal.Print(journal.PriInfo, "Commander is now listening for requests.")
 

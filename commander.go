@@ -3,17 +3,18 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"net/http"
 	"time"
 
-	"github.com/FergusInLondon/Commander/commands"
-)
+	"github.com/fergusinlondon/Commander/commands"
+	)
 
 // Commander is responsible for the parsing of Command requests via HTTP,
 //  and the subsequent dispatch to the correct reciever (or Command object).
 type Commander struct {
 	initialised bool
-	registry    map[string]commands.Command
+	registry    []commands.Command
 	status      struct {
 		Uptime    time.Time `json:"initialisation_time"`
 		Successes int64     `json:"successful_executions"`
@@ -21,63 +22,21 @@ type Commander struct {
 	}
 }
 
-type commandHolder struct {
-	Command    string          `json:"command"`
-	Parameters json.RawMessage `json:"parameters"`
-}
-
-// Register places a Command in to the registry
-func (comm *Commander) Register(c commands.Command) {
-	comm.registry[c.Identifier()] = c
-}
-
 // Init configures the command registry, and begins the uptime counter.
 func (comm *Commander) Init() (err error) {
-	comm.registry = make(map[string]commands.Command)
+	comm.registry = append(comm.registry,
+		new(commands.EchoCommand),
+		new(commands.NotifyCommand),
+		new(commands.TemplateCommand),
+		new(commands.ServicesCommand))
 
-	// @todo - find a nicer way.
-	commObjects := make([]commands.Command, 4)
-	commObjects[0] = new(commands.EchoCommand)
-	commObjects[1] = new(commands.NotifyCommand)
-	commObjects[2] = new(commands.TemplateCommand)
-	commObjects[3] = new(commands.ServicesCommand)
-
-	for i := 0; i < len(commObjects); i++ {
-		commObjects[i].Init()
-		comm.Register(commObjects[i])
+	for _, command := range comm.registry {
+		command.Init()
 	}
 
 	comm.status.Uptime = time.Now()
 	comm.initialised = true
 	return
-}
-
-// HandleCommand recieves a HTTP Request containing a JSON object with a "command"
-//  string, and a "parameters object". It uses the "command property" to determine
-//  which Command object is required, then unmarshels the "parameters" object in
-//  to the correct form of struct.
-func (comm *Commander) HandleCommand(w http.ResponseWriter, req *http.Request) {
-	var payload commandHolder
-
-	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(&payload)
-	defer req.Body.Close()
-
-	if err != nil {
-		comm.status.Failures++
-		panic("Unable to parse command object.")
-	} else {
-		comm.status.Successes++
-	}
-
-	if commandHandler, ok := comm.registry[payload.Command]; ok {
-		var commandParams = commandHandler.Object()
-		json.Unmarshal(payload.Parameters, commandParams)
-
-		response := commandHandler.Handle(commandParams)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(response)
-	}
 }
 
 // Listing returns a JSON payload containing the number of registered commands,
@@ -90,39 +49,52 @@ func (comm *Commander) Listing(w http.ResponseWriter, req *http.Request) {
 		descriptions = append(descriptions, command.Description())
 	}
 
-	payload["count"] = len(descriptions)
 	payload["commands"] = descriptions
-
-	jsonObject, err := json.Marshal(payload)
-	if err != nil {
-		jsonObject = []byte("{ \"success\" : false ")
-	}
+	payload["count"] = len(descriptions)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonObject)
+	if jsonObject, err := json.Marshal(payload); err != nil {
+		w.Write([]byte("{ \"success\" : false "))
+	} else {
+		w.Write(jsonObject)
+	}
 }
 
 // ProvideStatus responds to HTTP requests and returns a small JSON payload
 //  detailing a few metrics about Commander's status; namely: (a) the uptime,
 //  (b) number of commands handled, and (c) number of successful and failed commands.
 func (comm *Commander) ProvideStatus(w http.ResponseWriter, req *http.Request) {
+	executions := make(map[string]int64)
+	executions["failed"] = comm.status.Failures
+	executions["successful"] = comm.status.Successes
+	executions["total"] = (comm.status.Successes + comm.status.Failures)
+
 	status := make(map[string]interface{})
+	status["executions"] = executions
+	status["registed_commands"] = len(comm.registry)
 	status["uptime"] = time.Since(comm.status.Uptime).String()
 
-	executions := make(map[string]int64)
-	executions["successful"] = comm.status.Successes
-	executions["failed"] = comm.status.Failures
-	executions["total"] = (comm.status.Successes + comm.status.Failures)
-	status["executions"] = executions
-
-	jsonObject, err := json.Marshal(status)
-	if err != nil {
+	w.Header().Set("Content-Type", "application/json")
+	if jsonObject, err := json.Marshal(status); err != nil {
 		comm.status.Failures++
-		jsonObject = []byte("{ \"success\" : false ")
+		w.Write([]byte("{ \"success\" : false "))
 	} else {
 		comm.status.Successes++
+		w.Write(jsonObject)
 	}
+}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonObject)
+// ConfigureListeners configures the mux router for responding to inbound
+//  API requests.
+func (comm *Commander) ConfigureListeners(router *mux.Router)  {
+	router.HandleFunc("/listing", comm.Listing)
+	router.HandleFunc("/status", comm.ProvideStatus)
+
+	actions := router.PathPrefix("/action/").Subrouter()
+	for _, command := range comm.registry {
+		commandAction := actions.PathPrefix(command.Identifier()).Subrouter()
+		commandAction.HandleFunc("/describe", command.DisplaySchema)
+		commandAction.Methods("GET").Path("/").HandlerFunc(command.RetrieveConfig)
+		commandAction.Methods("POST").Path("/").HandlerFunc(command.SubmitConfig)
+	}
 }

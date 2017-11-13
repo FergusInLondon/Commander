@@ -3,6 +3,7 @@ package commands
 
 import (
 	"encoding/json"
+	"net/http"
 	"os"
 	"text/template"
 
@@ -12,22 +13,48 @@ import (
 // A Command is an object that is capable of handling an instruction from the
 //  JSON API.
 type Command interface {
+	// Init allows the Command to perform initialisation of dependencies
+	//  and handle
 	Init()
+
+	// Identifier returns the short alphanumeric string which allows a client
+	//  to call the action.
 	Identifier() string
-	Object() interface{}
-	Handle(interface{}) []byte
+
+	// Description provides basic information on a given command, such as
+	//  the name, the command identifier, and human readable description.
 	Description() CommandDescription
+
+	// DisplaySchema returns a JSON Schema describing the configuration
+	//  object. Useful for validation and form building.
+	DisplaySchema(w http.ResponseWriter, req *http.Request)
+
+	// RetrieveConfig retrieves the current configuration parameters,
+	//  allowing the client to display a form, or perform checks.
+	RetrieveConfig(w http.ResponseWriter, req *http.Request)
+
+	// SubmitConfig handles POST actions to the Command, generally for
+	//  the submission of new configuration options.
+	SubmitConfig(w http.ResponseWriter, req *http.Request)
 }
+
 
 // CommandDescription holds basic information about a command which is supplied
 //  via the HTTP JSON API when a client hits the "/listing" endpoint.
 type CommandDescription struct {
+	// Name is a human readable name for the command - i.e "DNS Configuration"
 	Name        string `json:"name"`
+
+	// Command is the alphanumeric string used to call the command - i.e "dnsconf"
 	Command     string `json:"command"`
+
+	// Description is a human readable description, generally one or two sentences.
 	Description string `json:"description"`
 }
 
-func hasError(msg string) (jsonObject []byte) {
+// Helper functions for returning standard payloads describing success and errors.
+
+func hasError(writer http.ResponseWriter, msg string) {
 	payload := make(map[string]interface{})
 	payload["success"] = false
 	payload["error"] = msg
@@ -37,10 +64,11 @@ func hasError(msg string) (jsonObject []byte) {
 		jsonObject = []byte("{ \"success\" : false }")
 	}
 
-	return
+	writer.WriteHeader(500)
+	writer.Write(jsonObject)
 }
 
-func ranSuccessfully(result map[string]interface{}) (jsonObject []byte) {
+func ranSuccessfully(writer http.ResponseWriter, result interface{}) {
 	payload := make(map[string]interface{})
 	payload["success"] = true
 	payload["result"] = result
@@ -50,8 +78,13 @@ func ranSuccessfully(result map[string]interface{}) (jsonObject []byte) {
 		jsonObject = []byte("{ \"success\" : true }")
 	}
 
-	return
+	writer.WriteHeader(200)
+	writer.Write(jsonObject)
 }
+
+
+// Helper functions for interfacing with underlying configuration systems
+//  such as DBus or Configuration Files.
 
 func handleTemplate(data interface{}, tplFile, destination string) (err error) {
 	tmpl, err := template.ParseFiles(tplFile)
@@ -68,10 +101,12 @@ func handleTemplate(data interface{}, tplFile, destination string) (err error) {
 	return tmpl.Execute(file, data)
 }
 
+
 var dbusConnections struct {
 	System  *dbus.Conn
 	Session *dbus.Conn
 }
+
 
 func getDbusSystemConnection() (conn *dbus.Conn, err error) {
 	if dbusConnections.System == nil {
@@ -80,6 +115,7 @@ func getDbusSystemConnection() (conn *dbus.Conn, err error) {
 
 	return dbusConnections.System, err
 }
+
 
 func getDbusSessionConnection() (conn *dbus.Conn, err error) {
 	if dbusConnections.Session == nil {
