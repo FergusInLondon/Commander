@@ -13,7 +13,6 @@ import (
 // Commander is responsible for the parsing of Command requests via HTTP,
 //  and the subsequent dispatch to the correct reciever (or Command object).
 type Commander struct {
-	initialised bool
 	registry    []commands.Command
 	status      struct {
 		Uptime    time.Time `json:"initialisation_time"`
@@ -35,7 +34,6 @@ func (comm *Commander) Init() (err error) {
 	}
 
 	comm.status.Uptime = time.Now()
-	comm.initialised = true
 	return
 }
 
