@@ -61,7 +61,7 @@ func main() {
 	//  handle watchdog functionality.
 	isWatchDogEnabled := false
 	interval, err := daemon.SdWatchdogEnabled(false)
-	if err == nil && interval > 0 {
+	if !*isDebug && (err == nil && interval > 0) {
 		isWatchDogEnabled = true
 		router.Headers("X-Watchdog", "Healthcheck").HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			daemon.SdNotify(false, "WATCHDOG=1")
