@@ -1,6 +1,7 @@
-# Commander
+# Commander - A Work in Progress
 
-Commander is a simple `systemd` enabled daemon written in Go, which listens on a Unix Domain Socket for JSON payloads expressing a *Command*. Commands are simply structs in Go which adhere to a specific interface and perform some lower-level action. 
+
+Commander is a simple `systemd` enabled daemon written in Go, which listens on a Unix Domain Socket for JSON payloads expressing a *Command*. Commands are simply structs in Go which adhere to a specific interface and perform some lower-level action.
 
 Use cases for Commands include:
 
@@ -17,35 +18,8 @@ Rather than manually using SSH to adjust configuration files though, I'd like to
 
 With this in mind, I can write a small PHP layer which glues the UI with Commander - the underlying system management layer. The web interface needs to know little - or nothing - about the intricacies of configuring `dnsmasq`, `hostapd`, `openvpn`, `iptables`, or any of the other underlying components. All the UI layer needs to do is to be able to tell Commander what the desired end-result is.
 
-
-## Status
-
-This is currently very much a pet project, and one that's been written over the course of a few hours.. although, it's currently capable of listening for commands and executing them; it's still a bit rough around the edges.
-
-Currently implemented commands include: (a) a demonstration echo command, (b) a notification one - demonstrating the ability to interface with `dbus`, and (c) a template one - demonstrating configuration file generation.
-
-I aim to write two more demonstration commands: (1) an iptables interface, and (2) a `systemd` unit manager. After that I'll do some refactoring and clean up.
-
-## Testing
-
-There are no tests. :( I will aim to write some tests once I decide exactly how to structure them (there's a lot of moving parts.) and I'm happy with the overall design. It would be jumping the gun to have gone full TDD on a simple proof of concept!
-
-### Manual Testing
-
-#### Bridging TCP connections to the Unix Socket (via Socat)
-
-[Socat](http://www.dest-unreach.org/socat/doc/socat.html) is a handy little tool that can expose the Unix socket used by Commander, to do so simply run:
-
-    $ socat -d -d TCP4-LISTEN:8080,fork UNIX-CONNECT:/tmp/commander.sock
-    >  2017/11/02 10:21:39 socat[9455] N listening on AF=2 0.0.0.0:8080
-
-#### Example Requests with [Postman](https://www.getpostman.com)
-
-In the `examples` directory there's a .json file which can be imported in to *Postman*, allowing you to try out the default demo Commands.
-
-## Thanks
-
-It's worth mentioning the quality of the [CoreOS](https://github.com/coreos) Go libraries; the `systemd` integration is managed via one of these libraries, and I aim to use [another one](https://github.com/coreos/go-iptables) for `iptables` integration.
+#### [Pre-Refactor Tag](https://github.com/FergusInLondon/Commander/tree/46cbe22e40a9c4bb9a27804dc5eab70709ee4a6a)
+This actually had a working proof of concept, but it had some very ugly logic and was overly complex.
 
 ## License (MIT)
 
