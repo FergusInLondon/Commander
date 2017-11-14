@@ -63,7 +63,7 @@ func main() {
 	interval, err := daemon.SdWatchdogEnabled(false)
 	if err == nil && interval > 0 {
 		isWatchDogEnabled = true
-		router.HandleFunc("/watchdog", func(w http.ResponseWriter, req *http.Request) {
+		router.Headers("X-Watchdog", "Healthcheck").HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			daemon.SdNotify(false, "WATCHDOG=1")
 			w.WriteHeader(200)
 		})
@@ -111,7 +111,7 @@ func get_api_listener() (listener net.Listener, err error){
 func call_systemd_healthcheck() {
 	// if this is being called, then systemd integration is enabled - and we can
 	//  be quite sure of the address of the unix socket.
-	httpc := http.Client{
+	httpClient := http.Client{
 		Transport: &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
 				return net.Dial("unix", "/tmp/commander.sock")
@@ -119,5 +119,11 @@ func call_systemd_healthcheck() {
 		},
 	}
 
-	httpc.Get("http://unix/watchdog")
+	httpRequest, err := http.NewRequest("GET", "http://unix/watchdog", nil)
+	if err != nil {
+		panic(err)
+	}
+
+	httpRequest.Header.Set("X-Watchdog", "Healthcheck")
+	httpClient.Do(httpRequest)
 }
