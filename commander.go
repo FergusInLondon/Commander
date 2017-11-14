@@ -21,6 +21,7 @@ type Commander struct {
 	}
 }
 
+
 // Init configures the command registry, and begins the uptime counter.
 func (comm *Commander) Init() (err error) {
 	comm.registry = append(comm.registry,
@@ -36,6 +37,7 @@ func (comm *Commander) Init() (err error) {
 	comm.status.Uptime = time.Now()
 	return
 }
+
 
 // Listing returns a JSON payload containing the number of registered commands,
 //  as well as their names, a description, and the command string.
@@ -57,6 +59,7 @@ func (comm *Commander) Listing(w http.ResponseWriter, req *http.Request) {
 		w.Write(jsonObject)
 	}
 }
+
 
 // ProvideStatus responds to HTTP requests and returns a small JSON payload
 //  detailing a few metrics about Commander's status; namely: (a) the uptime,
@@ -82,13 +85,16 @@ func (comm *Commander) ProvideStatus(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+
 // ConfigureListeners configures the mux router for responding to inbound
 //  API requests.
 func (comm *Commander) ConfigureListeners(router *mux.Router)  {
 	router.HandleFunc("/listing", comm.Listing)
 	router.HandleFunc("/status", comm.ProvideStatus)
 
-	actions := router.PathPrefix("/action/").Subrouter()
+	actions := router.PathPrefix("/action/").
+		Headers("X-Requested-With", "PiRouterBackend").Subrouter()
+
 	for _, command := range comm.registry {
 		commandAction := actions.PathPrefix(command.Identifier()).Subrouter()
 		commandAction.HandleFunc("/describe", command.DisplaySchema)

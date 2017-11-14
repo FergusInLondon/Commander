@@ -10,6 +10,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -23,40 +24,26 @@ import (
 	"github.com/coreos/go-systemd/journal"
 )
 
+
+var (
+	showHelp = flag.Bool("h", false, "Show Usage (This menu).")
+	isDebug  = flag.Bool("d", false, "Enter debug mode.")
+	sockFile = flag.String("socket", "/tmp/commander.sock", "Path to unix socket for use in debug mode.")
+)
+
+
 func main() {
 	journal.Print(journal.PriInfo, "Initialising Commander.")
 
-	showHelp := flag.Bool("h", false, "Show Usage (This menu).")
-	isDebug := flag.Bool("d", false, "Enter debug mode.")
-	sockFile := flag.String("socket", "/tmp/commander.sock", "Path to unix socket for use in debug mode.")
 	flag.Parse()
-
 	if *showHelp {
 		fmt.Println("Usage: ", os.Args[0], "[-d] [-socket=<socket_file>]")
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
 
-	// If Debug is enabled, then use socket file specified by the user, otherwise
-	//  try and retrieve a pre-configured Unix Socket from systemd.
-	var listener net.Listener
-	if *isDebug {
-		var err error
-		listener, err = net.Listen("unix", *sockFile)
-		if err != nil {
-			journal.Print(journal.PriErr, "Unable to activate socket.")
-			panic(err)
-		}
-	} else {
-		listeners, err := activation.Listeners(true)
-		if err != nil {
-			journal.Print(journal.PriErr, "Unable to activate socket.")
-			panic(err)
-		}
-
-		listener = listeners[0]
-	}
-
+	// Grab our socket for listening on
+	listener, _ := get_api_listener()
 	defer listener.Close()
 
 	// Create our Commander object; this will handle all HTTP interactions.
@@ -66,26 +53,24 @@ func main() {
 		panic(err)
 	}
 
+	// Create a new Router, and pass it to Commander for configuration
 	router := mux.NewRouter()
-	router.Headers("X-Requested-With", "PiRouterBackend")
 	commander.ConfigureListeners(router)
 
 	// Is systemd watchdog enabled? If so, register a HTTP endpoint which can
 	//  handle watchdog functionality.
 	isWatchDogEnabled := false
 	interval, err := daemon.SdWatchdogEnabled(false)
-	if err != nil && interval == 0 { // erhh... if err is NOT nil, then set watchdog to true...?!?!
+	if err == nil && interval > 0 {
 		isWatchDogEnabled = true
 		router.HandleFunc("/watchdog", func(w http.ResponseWriter, req *http.Request) {
 			daemon.SdNotify(false, "WATCHDOG=1")
+			w.WriteHeader(200)
 		})
 	}
 
-
-	// Configure Commander HTTP Handlers
-	router.HandleFunc("/dispatch", commander.HandleCommand)
+	// Configuration complete!
 	http.Serve(listener, router)
-
 	journal.Print(journal.PriInfo, "Commander is now listening for requests.")
 
 	// All init is done; so create a go-routine that simply hits our watchdog endpoint
@@ -93,9 +78,46 @@ func main() {
 	if isWatchDogEnabled {
 		go func() {
 			for {
-				/* @todo: Make request to listeners[0] '/watchdog' */
+				call_systemd_healthcheck()
 				time.Sleep(interval / 3)
 			}
 		}()
 	}
+}
+
+
+func get_api_listener() (listener net.Listener, err error){
+	// If Debug is enabled, then use socket file specified by the user, otherwise
+	//  try and retrieve a pre-configured Unix Socket from systemd.
+	if *isDebug {
+		listener, err = net.Listen("unix", *sockFile)
+		if err == nil {
+			return
+		}
+	} else {
+		listeners, err := activation.Listeners(true)
+		if err == nil {
+			return listeners[0], nil
+		}
+	}
+
+	journal.Print(journal.PriErr, "Unable to activate socket.")
+	panic(err)
+}
+
+
+// Thanks to @teknoraver for the example of HTTP over Unix Sockets.
+//  - https://gist.github.com/teknoraver/5ffacb8757330715bcbcc90e6d46ac74
+func call_systemd_healthcheck() {
+	// if this is being called, then systemd integration is enabled - and we can
+	//  be quite sure of the address of the unix socket.
+	httpc := http.Client{
+		Transport: &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", "/tmp/commander.sock")
+			},
+		},
+	}
+
+	httpc.Get("http://unix/watchdog")
 }
