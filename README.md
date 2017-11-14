@@ -18,7 +18,7 @@ Rather than manually using SSH to adjust configuration files though, I'd like to
 
 With this in mind, I can write a small PHP layer which glues the UI with Commander - the underlying system management layer. The web interface needs to know little - or nothing - about the intricacies of configuring `dnsmasq`, `hostapd`, `openvpn`, `iptables`, or any of the other underlying components. All the UI layer needs to do is to be able to tell Commander what the desired end-result is.
 
-#### [Pre-Refactor Tag](https://github.com/FergusInLondon/Commander/tree/46cbe22e40a9c4bb9a27804dc5eab70709ee4a6a)
+### [Pre-Refactor Tag](https://github.com/FergusInLondon/Commander/tree/proof-of-concept)
 This actually had a working proof of concept, but it had some very ugly logic and was overly complex.
 
 ## License (MIT)
