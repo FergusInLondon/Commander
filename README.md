@@ -1,5 +1,6 @@
 # Commander - A Work in Progress
 
+[![BCH compliance](https://bettercodehub.com/edge/badge/FergusInLondon/Commander?branch=master)](https://bettercodehub.com/) [![codebeat badge](https://codebeat.co/badges/29564430-a739-452d-9314-c8fc80e41e56)](https://codebeat.co/projects/github-com-fergusinlondon-commander-feature-services)
 
 Commander is a simple `systemd` enabled daemon written in Go, which listens on a Unix Domain Socket for JSON payloads expressing a *Command*. Commands are simply structs in Go which adhere to a specific interface and perform some lower-level action.
 

@@ -25,10 +25,8 @@ type Commander struct {
 // Init configures the command registry, and begins the uptime counter.
 func (comm *Commander) Init() (err error) {
 	comm.registry = append(comm.registry,
-		new(commands.EchoCommand),
-		new(commands.NotifyCommand),
-		new(commands.TemplateCommand),
-		new(commands.ServicesCommand))
+		new(commands.UpdateDNSMasqCommand),
+		new(commands.UpdateHostAPDCommand))
 
 	for _, command := range comm.registry {
 		command.Init()

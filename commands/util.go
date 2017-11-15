@@ -124,3 +124,15 @@ func getDbusSessionConnection() (conn *dbus.Conn, err error) {
 
 	return dbusConnections.Session, err
 }
+
+func reloadOrRestartSystemdUnit(unitName string) (err error) {
+	dbusConn, err := getDbusSystemConnection()
+	if err != nil {
+		panic(err)
+	}
+
+	systemdManager := dbusConn.Object("org.freedesktop.systemd1", dbus.ObjectPath("/org/freedesktop/systemd1"))
+	call := systemdManager.Call("org.freedesktop.systemd1.Manager.ReloadOrRestartUnit", 0, unitName, "replace")
+
+	return call.Err
+}
